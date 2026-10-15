@@ -11,10 +11,10 @@ npm ci
 node --env-file=.env server.js
 ```
 
-`.env` は `npm start` 単独では読み込まない。PM2では環境を明示して渡す。Xserver/Nginxの既存 `/ws/` 設定は `/ws/wiss` にも利用できる。ブラウザカメラにはHTTPS（またはlocalhost）が必要。
+起動時に `backend/.env` を自動で読み込む。設定変更後は対象のPM2プロセスを再起動する。Xserver/Nginxの既存 `/ws/` 設定は `/ws/wiss` にも利用できる。ブラウザカメラにはHTTPS（またはlocalhost）が必要。
 
 - 撮影者：`https://<host>/booth/`
-- 研究者：`https://<host>/admin/`。`WISS_ADMIN_TOKEN` が未設定なら管理APIは使用不可。
+- 研究者：`https://<host>/admin/`。ログイン不要。管理APIも認証なしで利用可能。
 - iOS：`API_BASE_URL` / `WEB_APP_BASE_URL` の設定先を同一サーバーへ合わせる。WISSは横向きのみ、管理者画面・自動姿勢推定・フレーム変形を含まない。従来画面は `WISS_MODE=false` のビルドで利用できる。
 - QRからiOSの`wissphoto://join?code=...`を開くか、12桁の参加コードを入力する。
 

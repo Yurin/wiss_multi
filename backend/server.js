@@ -1,5 +1,12 @@
 const express = require('express');
 const path = require('node:path');
+// Resolve against this file so npm, PM2, and direct launches use the same config.
+// Explicit process environment variables take precedence over .env values.
+try {
+  process.loadEnvFile(path.join(__dirname, '.env'));
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
+}
 const { createServer } = require('node:http');
 const { createWiss } = require('./wiss/router');
 

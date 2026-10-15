@@ -30,15 +30,15 @@ NODE_ENV=production
 # PYTHON=.venv/bin/python
 ```
 
-実際の本番運用では `.env` を作成し、秘密情報は含めないでください。
+実際の本番運用ではサーバー上に `.env` を作成してください。秘密情報を含むためGitには追加しないでください。Node.js 22.16以降を使用してください。`server.js` が同じディレクトリの `.env` を自動で読み込みます。
 
 ## 2. PM2 で常時起動する手順
 
 ```sh
 cd 2026Collaboratry_Photographer_Interface/backend
-pm install
+npm install
 # 必要なら .env を作成
-cp .env.example .env
+test -f .env || cp .env.example .env
 # pm2 で起動
 pm2 start server.js --name photo-backend
 pm2 save

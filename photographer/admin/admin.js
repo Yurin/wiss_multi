@@ -1,20 +1,20 @@
 import { $, api, element, jobText } from '../booth/common.js';
-let token = '', selectedPhoto, refreshing = false, URLs = [], lastNotificationCount = 0;
-const request = (path, opts = {}) => api(`/admin${path}`, { token, ...opts });
+let selectedPhoto, refreshing = false, URLs = [], lastNotificationCount = 0;
+const request = (path, opts = {}) => api(`/admin${path}`, opts);
 const guard = fn => async e => { e?.preventDefault(); $('error').textContent = ''; try { await fn(); } catch (e) { $('error').textContent = e.message; } };
 function button(text, action, cls) { const b = element('button', text, cls); b.onclick = guard(action); return b; }
 async function privateImage(path) {
-  const r = await fetch(`/api/wiss/admin${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  const r = await fetch(`/api/wiss/admin${path}`);
   if (!r.ok) throw new Error('画像を取得できません');
   const url = URL.createObjectURL(await r.blob()); URLs.push(url); return url;
 }
 function dispose() { URLs.forEach(URL.revokeObjectURL); URLs = []; }
 async function refresh() {
-  if (refreshing || !token) return;
+  if (refreshing) return;
   refreshing = true;
   try {
     const [data, stats] = await Promise.all([request('/dashboard'), request('/analytics')]);
-    dispose(); $('dashboard').hidden = false; $('login').hidden = true; $('logout').hidden = false;
+    dispose(); $('dashboard').hidden = false;
     $('counts').textContent = `作成待ち ${data.counts.pending} / 作成中 ${data.counts.processing} / 公開 ${data.counts.published}`;
     $('notifications').replaceChildren(...data.notifications.slice(-10).reverse().map(n => {
       const b = button(`${new Date(n.capturedAt).toLocaleString()} / ${n.subjectCount}人 / ${n.sessionId}`, () => selectPhoto(data.photos.find(p => p.id === n.photoId)), 'secondary'); return b;
@@ -68,9 +68,7 @@ async function refresh() {
   } finally { refreshing = false; }
 }
 function selectPhoto(p) { if (!p) return; selectedPhoto = p; $('editor').hidden = false; $('editing').textContent = `元写真：${p.id}`; $('register').elements.subjectCount.value = p.subjectCount; $('editor').scrollIntoView({ behavior: 'smooth' }); }
-$('login').onsubmit = guard(async () => { token = $('token').value; await refresh(); $('token').value = ''; });
 $('initial').onsubmit = guard(async () => { const p = await request('/initial-photos', { method: 'POST', body: new FormData($('initial')) }); $('initial').reset(); await refresh(); selectPhoto(p); });
-$('logout').onclick = () => { token = ''; dispose(); location.reload(); };
 let previewURLs = [];
 function preview() {
   previewURLs.forEach(URL.revokeObjectURL); previewURLs = [];
@@ -83,8 +81,10 @@ function preview() {
 $('register').onchange = preview;
 $('register').onsubmit = guard(async () => { if (!selectedPhoto) throw new Error('写真を選択してください'); await request(`/photos/${selectedPhoto.id}/reference`, { method: 'POST', body: new FormData($('register')) }); $('editor').hidden = true; selectedPhoto = null; $('register').reset(); preview(); await refresh(); });
 function download(url, name) { const a = element('a'); a.href = url; a.download = name; a.click(); }
-async function csv(type) { const r = await fetch(`/api/wiss/admin/export.csv?type=${type}`, { headers: { Authorization: `Bearer ${token}` } }); if (!r.ok) throw new Error('CSV取得に失敗しました'); const url = URL.createObjectURL(await r.blob()); download(url, `wiss-${type}.csv`); setTimeout(() => URL.revokeObjectURL(url), 10000); }
+async function csv(type) { const r = await fetch(`/api/wiss/admin/export.csv?type=${type}`); if (!r.ok) throw new Error('CSV取得に失敗しました'); const url = URL.createObjectURL(await r.blob()); download(url, `wiss-${type}.csv`); setTimeout(() => URL.revokeObjectURL(url), 10000); }
 for (const [id, type] of [['csvFrames', 'frames'], ['csvSessions', 'sessions'], ['csvEvents', 'events']]) $(id).onclick = guard(() => csv(type));
 $('retry').onclick = guard(async () => { await request('/retry', { method: 'POST' }); await refresh(); });
 // Poll only outside the editor to avoid disturbing manual preview work.
-setInterval(() => { if (token && $('editor').hidden) refresh().catch(e => { $('error').textContent = e.message; }); }, 15000);
+setInterval(() => { if ($('editor').hidden) refresh().catch(e => { $('error').textContent = e.message; }); }, 15000);
+
+refresh().catch(e => { $('error').textContent = e.message; });

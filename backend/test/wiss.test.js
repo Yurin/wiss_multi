@@ -15,7 +15,7 @@ const { Integrations } = require('../wiss/integrations');
 
 async function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wiss-test-'));
-  const env = { WISS_ADMIN_TOKEN: 'test-admin-only', WISS_PUBLIC_URL: 'http://localhost' };
+  const env = { WISS_PUBLIC_URL: 'http://localhost' };
   const wiss = createWiss({ root, env, noWorker: true });
   const app = express(); app.use('/api/wiss', wiss.router);
   const server = createServer(app); server.on('upgrade', wiss.upgrade); server.listen(0, '127.0.0.1'); await once(server, 'listening');
@@ -50,7 +50,7 @@ async function fixture(t) {
       const data = overrides[key] || (key === 'reference' ? jpg : png);
       form.append(key, new Blob([data], { type: key === 'reference' ? 'image/jpeg' : 'image/png' }), key);
     }
-    return request(`/admin/photos/${p.id}/reference`, env.WISS_ADMIN_TOKEN, 'POST', form, status);
+    return request(`/admin/photos/${p.id}/reference`, null, 'POST', form, status);
   }
   return { root, wiss, env, base, request, session, sessionPath, state, joinCode, join, jpg, png, capture, decision, register };
 }
@@ -65,7 +65,7 @@ test('six subjects, independent consent, authority and competing activation, Web
   await request(`${sessionPath}/representative`, session.token, 'POST', { subjectId: other.subjectId, expectedVersion: s.version });
   s = await f.state(); assert.equal(s.representativeId, other.subjectId);
   const p = await f.capture(); await f.decision(p, 'saved'); const ref = await f.register(p);
-  await request(`/admin/references/${ref.id}`, f.env.WISS_ADMIN_TOKEN, 'PATCH', { status: 'published' });
+  await request(`/admin/references/${ref.id}`, null, 'PATCH', { status: 'published' });
   await request(`${sessionPath}/view`, other.token, 'POST', { frameId: ref.variants[0].id });
   await request(`${sessionPath}/proposals`, representative.token, 'POST', { frameId: ref.variants[0].id });
   s = await f.state();
@@ -75,7 +75,7 @@ test('six subjects, independent consent, authority and competing activation, Web
   assert.deepEqual(responses.sort(), [200, 409]);
   assert.equal((await f.state()).activeFrameId, ref.variants[0].id);
   const shot = await f.capture(); assert.equal(wiss.store.data.photos[shot.id].frameVariantId, ref.variants[0].id);
-  const stats = await request('/admin/analytics', f.env.WISS_ADMIN_TOKEN);
+  const stats = await request('/admin/analytics', null);
   assert.deepEqual([stats.frames[0].viewed, stats.frames[0].proposed, stats.frames[0].activated, stats.frames[0].captured], [1, 1, 1, 1]);
   const sockets = [];
   for (const c of [session, ...subjects]) {
@@ -89,7 +89,7 @@ test('six subjects, independent consent, authority and competing activation, Web
   }));
   sockets[0].send(f.jpg);
   for (const bytes of await Promise.all(binaryMessages)) assert.deepEqual(bytes, f.jpg);
-  await request(`/admin/references/${ref.id}`, f.env.WISS_ADMIN_TOKEN, 'PATCH', { status: 'ready' });
+  await request(`/admin/references/${ref.id}`, null, 'PATCH', { status: 'ready' });
   assert.equal((await f.state()).activeFrameId, null);
   assert.equal((await request('/library')).length, 0);
 });
@@ -124,7 +124,7 @@ test('consent snapshots, delete removes original, retry only failed destination,
   const another = await request('/sessions', null, 'POST', {}, 201);
   await request(`/share/${another.sessionId}`, shareToken, 'GET', null, 401);
   await request(`${sessionPath}/photos/${first.id}/image`, another.token, 'GET', null, 401);
-  await request('/admin/dashboard', a.token, 'GET', null, 401);
+  await request('/admin/dashboard');
   assert.equal(fs.readFileSync(wiss.store.assetPath(wiss.store.data.photos[first.id].asset)).equals(f.jpg), true);
 });
 
@@ -142,17 +142,17 @@ test('PNG validation, publication requires consent, complete WOz publication and
   const ref = await f.register(p);
   assert.equal(Object.keys(f.wiss.store.data.references).length, 1);
   assert.equal((await f.request('/library')).length, 0);
-  await f.request(`/admin/references/${ref.id}`, f.env.WISS_ADMIN_TOKEN, 'PATCH', { status: 'published' });
+  await f.request(`/admin/references/${ref.id}`, null, 'PATCH', { status: 'published' });
   const list = await f.request('/library'); assert.equal(list.length, 1); assert.equal(list[0].variants.length, 3);
   const response = await fetch(`${f.base}${list[0].variants[0].imageURL}`); assert.equal(response.status, 200);
-  const csv = await f.request('/admin/export.csv', f.env.WISS_ADMIN_TOKEN); assert.ok(csv.includes("'=テストフレーム"));
+  const csv = await f.request('/admin/export.csv', null); assert.ok(csv.includes("'=テストフレーム"));
   const other = await f.request('/sessions', null, 'POST', {}, 201);
   const otherState = await f.request(`/sessions/${other.sessionId}`, other.token);
   const otherSubject = await f.request('/join', null, 'POST', { joinCode: otherState.joinCode }, 201);
   const s = await f.request(`/sessions/${other.sessionId}`, other.token);
   const selected = await f.request(`/sessions/${other.sessionId}/active-frame`, otherSubject.token, 'PUT', { expectedVersion: s.version, frameId: list[0].variants[1].id });
   assert.equal(selected.reference.id, ref.id);
-  await f.request(`/admin/references/${ref.id}`, f.env.WISS_ADMIN_TOKEN, 'PATCH', { status: 'deleted' });
+  await f.request(`/admin/references/${ref.id}`, null, 'PATCH', { status: 'deleted' });
   assert.equal((await f.request(`/sessions/${other.sessionId}`, other.token)).mode, 'free');
 });
 
@@ -175,10 +175,10 @@ test('SMTP uncertain delivery is not resent after restart; initial templates are
   let mailed = 0;
   const worker = new Integrations(f.wiss.store, f.env, { drive: async () => ({}), mail: async () => { mailed++; } });
   await worker.tick(); assert.equal(mailed, 0); assert.equal(f.wiss.store.data.jobs[`mail:${p.id}`].status, 'uncertain');
-  await f.request(`/admin/jobs/${encodeURIComponent(`mail:${p.id}`)}/resolve`, f.env.WISS_ADMIN_TOKEN, 'POST', { resolution: 'delivered' });
+  await f.request(`/admin/jobs/${encodeURIComponent(`mail:${p.id}`)}/resolve`, null, 'POST', { resolution: 'delivered' });
   await worker.tick(); assert.equal(mailed, 0);
   const form = new FormData(); form.append('rightsConfirmed', 'true'); form.append('subjectCount', '2'); form.append('photo', new Blob([f.jpg], { type: 'image/jpeg' }), 'original.jpg');
-  const initial = await f.request('/admin/initial-photos', f.env.WISS_ADMIN_TOKEN, 'POST', form, 201);
+  const initial = await f.request('/admin/initial-photos', null, 'POST', form, 201);
   await f.request(`/share/${initial.sessionId}`, null, 'GET', null, 401);
   const ref = await f.register(initial); assert.equal(ref.origin, 'initial');
 });

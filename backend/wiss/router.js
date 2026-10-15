@@ -23,10 +23,6 @@ function createWiss(options = {}) {
   const clients = new Map();
   router.use(express.json({ limit: '64kb' }));
   router.use((req, res, next) => { res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff' }); next(); });
-  const admin = (req, res, next) => {
-    if (!env.WISS_ADMIN_TOKEN || hash(credential(req)) !== hash(env.WISS_ADMIN_TOKEN)) return res.status(401).json({ error: '管理者認証が必要です' });
-    next();
-  };
   function auth(req, photographer = false) {
     const s = store.session(store.data, req.params.sessionId);
     const actor = store.actor(s, credential(req));
@@ -136,7 +132,6 @@ function createWiss(options = {}) {
     check(p?.sessionId === s.id && p.decision === 'saved', '写真が見つかりません', 404); res.sendFile(store.assetPath(p.asset));
   }));
 
-  router.use('/admin', admin);
   router.post('/admin/initial-photos', upload.single('photo'), wrap(async (req, res) => {
     check(req.body.rightsConfirmed === 'true', '研究保存とライブラリ公開に利用可能な初期素材であることを確認してください');
     const validated = await validateImage(req.file);

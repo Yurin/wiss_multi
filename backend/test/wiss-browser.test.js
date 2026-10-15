@@ -13,7 +13,7 @@ const { createWiss } = require('../wiss/router');
 (async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wiss-ui-'));
   const app = express();
-  const wiss = createWiss({ root, env: { WISS_ADMIN_TOKEN: 'ui-test-admin' }, noWorker: true });
+  const wiss = createWiss({ root, env: {}, noWorker: true });
   app.use('/api/wiss', wiss.router); app.use(express.static(path.join(__dirname, '../../photographer')));
   const server = createServer(app); server.on('upgrade', wiss.upgrade); server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -47,8 +47,6 @@ const { createWiss } = require('../wiss/router');
     await page.screenshot({ path: '/private/tmp/wiss-photographer.png', fullPage: true });
     const admin = await context.newPage(); admin.on('pageerror', e => errors.push(e.message));
     await admin.goto(`${base}/admin/`);
-    await admin.getByLabel('管理者トークン').fill('ui-test-admin');
-    await admin.getByRole('button', { name: 'ログイン', exact: true }).click();
     await admin.getByRole('button', { name: 'フレームを登録', exact: true }).click();
     const pngPath = path.join(root, 'manual.png');
     await sharp(Buffer.from('<svg width="1600" height="1200"><rect x="400" y="200" width="400" height="700" fill="none" stroke="#ff6600" stroke-width="20"/></svg>')).png().toFile(pngPath);
@@ -68,6 +66,6 @@ const { createWiss } = require('../wiss/router');
     await share.getByAltText('保存写真').waitFor();
     const imageLoaded = await share.getByAltText('保存写真').evaluate(img => img.complete && img.naturalWidth === 1600); assert.ok(imageLoaded);
     assert.deepEqual(errors, []);
-    console.log('WISS UI passed: camera 1600x1200, delete/save, admin login, PNG preview/register/publish, CSV, private photo gallery');
+    console.log('WISS UI passed: camera 1600x1200, delete/save, admin without login, PNG preview/register/publish, CSV, private photo gallery');
   } finally { await browser?.close(); wiss.close(); server.closeAllConnections(); await new Promise(r => server.close(r)); fs.rmSync(root, { recursive: true, force: true }); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
