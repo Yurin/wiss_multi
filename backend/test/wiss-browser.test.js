@@ -1,0 +1,73 @@
+// Local UI acceptance test. Uses a temporary profile and fake camera only.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { once } = require('node:events');
+const { createServer } = require('node:http');
+const express = require('express');
+const { chromium } = require('playwright');
+const sharp = require('sharp');
+const { createWiss } = require('../wiss/router');
+
+(async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wiss-ui-'));
+  const app = express();
+  const wiss = createWiss({ root, env: { WISS_ADMIN_TOKEN: 'ui-test-admin' }, noWorker: true });
+  app.use('/api/wiss', wiss.router); app.use(express.static(path.join(__dirname, '../../photographer')));
+  const server = createServer(app); server.on('upgrade', wiss.upgrade); server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const base = `http://127.0.0.1:${server.address().port}`;
+  let browser;
+  try {
+    browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true,
+      args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['camera'] });
+    const page = await context.newPage(), errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto(`${base}/booth/`);
+    await page.getByRole('button', { name: 'セッションを開始', exact: true }).click();
+    await page.locator('#joinCode').waitFor({ state: 'visible' });
+    const joinCode = await page.locator('#joinCode').textContent();
+    const subject = wiss.store.join(joinCode);
+    wiss.store.mutate(subject.sessionId, subject.token, 'consent', { research: true, publication: true }); wiss.broadcast(subject.sessionId);
+    await page.getByRole('button', { name: 'カメラを開始', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#video').videoWidth > 0);
+    await page.getByRole('button', { name: '撮影する', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'visible' });
+    await page.getByRole('button', { name: '削除する', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    assert.equal(Object.values(wiss.store.data.photos)[0].decision, 'deleted');
+    assert.equal(fs.readdirSync(path.join(root, 'assets')).length, 0);
+    await page.getByRole('button', { name: '撮影する', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'visible' });
+    await page.getByRole('button', { name: '保存する', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    const p = Object.values(wiss.store.data.photos).find(p => p.decision === 'saved'); assert.ok(p);
+    const m = await sharp(wiss.store.assetPath(p.asset)).metadata(); assert.equal(m.width, 1600); assert.equal(m.height, 1200);
+    await page.screenshot({ path: '/private/tmp/wiss-photographer.png', fullPage: true });
+    const admin = await context.newPage(); admin.on('pageerror', e => errors.push(e.message));
+    await admin.goto(`${base}/admin/`);
+    await admin.getByLabel('管理者トークン').fill('ui-test-admin');
+    await admin.getByRole('button', { name: 'ログイン', exact: true }).click();
+    await admin.getByRole('button', { name: 'フレームを登録', exact: true }).click();
+    const pngPath = path.join(root, 'manual.png');
+    await sharp(Buffer.from('<svg width="1600" height="1200"><rect x="400" y="200" width="400" height="700" fill="none" stroke="#ff6600" stroke-width="20"/></svg>')).png().toFile(pngPath);
+    await admin.getByLabel('フレーム名', { exact: true }).fill('テスト・手描きフレーム');
+    await admin.locator('#register input[name=reference]').setInputFiles(wiss.store.assetPath(p.asset));
+    for (const kind of ['box', 'silhouette', 'box_face']) await admin.locator(`#register input[name=${kind}]`).setInputFiles(pngPath);
+    await admin.screenshot({ path: '/private/tmp/wiss-admin-editor.png', fullPage: true });
+    await admin.getByRole('button', { name: '検証して公開準備完了にする', exact: true }).click();
+    await admin.getByRole('button', { name: 'ライブラリに公開', exact: true }).click();
+    await admin.getByRole('button', { name: '非公開にする', exact: true }).waitFor();
+    assert.equal(Object.values(wiss.store.data.references)[0].status, 'published');
+    await admin.screenshot({ path: '/private/tmp/wiss-admin.png', fullPage: true });
+    await admin.getByRole('button', { name: 'フレーム別CSV', exact: true }).click();
+    const share = await context.newPage();
+    const session = wiss.store.data.sessions[subject.sessionId];
+    await share.goto(`${base}/booth/share.html#${session.id}/${session.shareToken}`);
+    await share.getByAltText('保存写真').waitFor();
+    const imageLoaded = await share.getByAltText('保存写真').evaluate(img => img.complete && img.naturalWidth === 1600); assert.ok(imageLoaded);
+    assert.deepEqual(errors, []);
+    console.log('WISS UI passed: camera 1600x1200, delete/save, admin login, PNG preview/register/publish, CSV, private photo gallery');
+  } finally { await browser?.close(); wiss.close(); server.closeAllConnections(); await new Promise(r => server.close(r)); fs.rmSync(root, { recursive: true, force: true }); }
+})().catch(e => { console.error(e); process.exitCode = 1; });

@@ -4,21 +4,19 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test:session-flow": "node test/session-flow.test.js",
-    "test:guidance": "node test/research-guidance.test.js && node test/guidance-ui.test.js && node test/progressive-flow.test.js",
-    "test:participant-flow": "node test/participant-flow.test.js && node test/participant-ui.test.js && node test/participant-http.test.js",
-    "export:experiment-data": "node experiment_tools.js export",
-    "backup:experiments": "node experiment_tools.js backup",
-    "check:experiment-ready": "node experiment_tools.js check",
-    "summary:experiments": "node experiment_tools.js summary",
-    "test:research-operations": "node test/research-data.test.js",
-    "register:experiment-plans": "node experiment_tools.js plans",
-    "test:study-design": "node test/study-design.test.js"
+    "test:wiss": "node --test test/wiss.test.js",
+    "test:wiss-ui": "node test/wiss-browser.test.js"
   },
   "dependencies": {
-    "cors": "^2.8.6",
     "express": "^4.22.2",
+    "googleapis": "^183.0.0",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^10.0.15",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.5",
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

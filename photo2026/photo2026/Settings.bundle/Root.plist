@@ -10,7 +10,7 @@
 			<key>Title</key>
 			<string>撮影サーバー</string>
 			<key>FooterText</key>
-			<string>実機では、MacのローカルIPを使って http://192.168.x.x:3000 の形式で入力してください。変更後はアプリを再起動します。</string>
+			<string>撮影サーバーのHTTPS URLを入力してください。変更後はアプリを再起動します。WebSocketも同じサーバーへ接続します。</string>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -18,23 +18,7 @@
 			<key>Title</key>
 			<string>サーバーURL</string>
 			<key>Key</key>
-			<string>ServerBaseURL</string>
-			<key>DefaultValue</key>
-			<string></string>
-			<key>AutocapitalizationType</key>
-			<string>None</string>
-			<key>AutocorrectionType</key>
-			<string>No</string>
-			<key>KeyboardType</key>
-			<string>URL</string>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSTextFieldSpecifier</string>
-			<key>Title</key>
-			<string>WebSocket URL（任意）</string>
-			<key>Key</key>
-			<string>WebSocketBaseURL</string>
+			<string>API_BASE_URL</string>
 			<key>DefaultValue</key>
 			<string></string>
 			<key>AutocapitalizationType</key>

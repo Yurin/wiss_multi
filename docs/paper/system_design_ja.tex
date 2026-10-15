@@ -1,0 +1,34 @@
+% Overleaf: Compiler = LuaLaTeX. Compile this file as the main document.
+% Download the resulting vector PDF and include it in the paper via includegraphics.
+\documentclass[border=6pt]{standalone}
+\usepackage{luatexja}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\begin{document}
+\begin{tikzpicture}[
+  box/.style={draw,rounded corners=2pt,align=center,text width=4.0cm,
+    minimum height=1.6cm,inner sep=6pt,font=\small},
+  arr/.style={-{Stealth[length=2mm]},thick},
+  both/.style={Stealth-Stealth,thick},
+  lab/.style={font=\scriptsize,align=center,fill=white,inner sep=3pt}
+]
+\node[box] (camera) at (0,0) {\textbf{撮影者：Web端末（1台）}\\カメラ映像＋共通フレーム\\撮影／保存・削除};
+\node[box] (subject) at (10,0) {\textbf{被写体：iOS端末（1〜6人）}\\お手本写真｜映像＋共通フレーム\\各自が提案／代表者が確定};
+\node[box,text width=4.5cm,minimum height=2cm] (server) at (5,-3.4)
+  {\textbf{協調撮影サーバ}\\Node.js / Express\\セッション・同意・確定フレーム管理\\WebSocketによる映像中継・状態同期};
+\draw[arr] (camera.east) -- node[lab,above] {同じ確定フレームを各端末で重畳} node[lab,below] {映像はサーバ経由で配信} (subject.west);
+\draw[both] (camera.south) -- (0,-3.4) -- node[lab,above] {撮影画像・操作\\状態同期} (server.west);
+\draw[both] (subject.south) -- (10,-3.4) -- node[lab,above] {提案・確定・同意\\映像・状態受信} (server.east);
+\node[box] (admin) at (0,-7.2) {\textbf{研究者：管理Web}\\外部ツールでフレームを手描き\\3種類の透過PNGを登録・公開};
+\node[box] (storage) at (5,-7.2) {\textbf{ローカル永続化}\\画像・参照写真・フレーム\\JSON状態・操作ログ・ジョブ};
+\node[box] (drive) at (10,-7.2) {\textbf{Google Drive連携}\\共有用：保存を選択した写真\\研究用：全員の研究同意に従う};
+\draw[both] (server.south) -- node[lab,right] {読み書き} (storage.north);
+\draw[both] (admin.north) -- (0,-5.25) -| node[lab,pos=.25,above] {素材取得／登録・公開} (server.south west);
+\draw[arr] (server.south east) |- (10,-5.25) -- node[lab,right] {非同期保存} (drive.north);
+\node[align=left,font=\scriptsize,anchor=north west,text width=14.5cm] at (-2.2,-8.45)
+ {上段の矢印は利用者間の情報共有を表し、端末間の直接通信ではない。\\
+ 端末の操作・画像取得はHTTP API、映像中継と状態配信はWebSocketを使用する。\\
+ 保存済みの自由撮影写真は、全員の公開同意がある場合にフレーム作成素材となる。\\
+ 研究者が公開したフレームは、別セッションでも選択できる。};
+\end{tikzpicture}
+\end{document}

@@ -2,18 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDisplayName</key>
+	<string>WISS Multi</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>wissphoto</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>WISS session invitation</string>
+		</dict>
+	</array>
 	<key>API_BASE_URL</key>
 	<string>https://photo-interface.com</string>
 	<key>WEB_APP_BASE_URL</key>
 	<string>https://photo-interface.com</string>
-	<key>WS_BASE_URL</key>
-	<string>wss://photo-interface.com/ws/video</string>
-	<key>ServerBaseURL</key>
-	<string>http://localhost:3000</string>
-	<key>WebSocketBaseURL</key>
-	<string></string>
-	<key>ExperimenterPIN</key>
-	<string>2026</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>撮影者端末と写真・ガイドを共有するため、ローカルネットワーク上の撮影サーバーへ接続します。</string>
 	<key>NSAppTransportSecurity</key>

@@ -1,9 +1,0 @@
-{
-  "version": "progressive-v1",
-  "thresholds": {"center": 0.06, "scale": 0.10, "pose": 0.25},
-  "categoryWeights": {"composition_position": 3.0, "composition_scale": 2.5, "pose": 1.0},
-  "minConfidence": 0.3,
-  "minTorsoLength": 0.04,
-  "imageAspectRatio": 0.75,
-  "poseTargets": ["nose", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist", "leftHip", "rightHip", "leftKnee", "rightKnee", "leftAnkle", "rightAnkle"]
-}

@@ -4,6 +4,7 @@ backend/node_modules/
 # Runtime uploads and generated files
 backend/uploads/
 backend/data/reference_guides/
+backend/data/wiss/
 backend/guide_processor/__pycache__/
 backend/test_*.png
 build/

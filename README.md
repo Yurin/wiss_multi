@@ -1,19 +1,35 @@
-# 協調的写真撮影インタフェース
+# WISS Multi
 
-参照写真を再現する人物撮影で、撮影者の構図調整と被写体のポーズ調整を支援するiOS＋Webシステムです。
+WISS Challenge向けの協調写真撮影システムです。撮影者1人と被写体最大6人が、共通のフレームを見ながら写真を撮影します。
 
-研究課題は「役割別支援の有無と、一括提示／優先順位に基づく段階的提示が、参照再現精度と調整過程に与える影響」。B/Cはともに写真評価後の撮り直し決定時に指示を提示し、撮影前・中・後のTiming比較ではありません。撮影→解析→調整→再撮影のサイクルで、ガイドのみ／全役割別指示／段階的役割別指示を比較します。
+- 撮影者Web：`/booth/`
+- 被写体iOS：**WISS Multi**（`photo2026/photo2026.xcodeproj`）
+- 研究者Web：`/admin/`
+- バックエンド：Node.js / Express、WebSocketによる映像・状態同期
 
-- [計画登録・短縮アンケート・分析用出力の運用手順](docs/study-design-implementation.md)
-- [本実験のデータ保全・Export・開始前チェック](docs/research-operations.md)
-- [参加者主導の実験フロー・準備・検証結果](docs/participant-experiment-flow.md)
-- [実行方法](RUNNING.md)
-- [現在の機能と制約](REQUIREMENTS.md)
-- [実験要件・条件](EXPERIMENT_REQUIREMENTS.md)
-- [Progressive Guidanceの設計・ログ・変更一覧・検証](docs/progressive-guidance.md)
+## 起動と参加
 
-新しい実験は新規セッションで実施してください。旧条件の記録とは`guidanceProtocolVersion`で区別します。
+[バックエンドの起動手順](backend/README.md)に従ってサーバーを起動してください。
+撮影者Webで「セッションを開始」を押すと参加コードが発行されます。
+被写体はそれぞれのiOSアプリに同じ参加コードを入力して参加します。
 
-iOSホームの「ユーザ実験を開始・再開」から、事前定義した計画に沿って練習・撮影・双方の独立評価・再撮影・アンケート・全試行終了まで進められます。研究者は事前に参照画像・補正姿勢・ペア別JSON計画を準備します。リポジトリの計画は雛形のみです。実機2台の無介助パイロットは未実施です。
+iOSはXcodeでプロジェクトを開き、Signing & Capabilitiesで使用する開発チームを選択してビルドします。
+Bundle IDは `com.yurinisocha.wissmulti.a81c4f2b` です。
+サーバー接続先の既定値は `https://photo-interface.com` です。
 
-参加者実験はTTL削除対象外です。`npm --prefix backend run export:experiment-data` / `backup:experiments` / `check:experiment-ready`で出力・保全・準備確認ができます。途中辞退と両端末の参加情報リセットを実装済み。Ready表示は既定falseです。現環境は有効な実験計画が未準備のため、pilot / main studyとも開始判定はNOです。
+## ドキュメント
+
+- [設計とPhase計画](docs/wiss-design.md)
+- [設定・運用・検証と受入試験](docs/wiss-operations.md)
+- [Xserverへの配備](docs/deploy-xserver.md)
+
+## 開発
+
+```sh
+npm --prefix backend ci
+npm --prefix backend run test:wiss
+npm --prefix backend run test:wiss-ui
+```
+
+秘密情報は `backend/.env` に設定し、Gitには含めません。写真、セッションデータ、研究用エクスポート、ビルド生成物も管理対象外です。
+旧1人用アプリから引き継いだ履歴を保持し、WISS Multiは https://github.com/Yurin/wiss_multi で管理します。
